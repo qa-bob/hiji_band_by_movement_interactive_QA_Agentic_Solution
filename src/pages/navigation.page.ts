@@ -23,18 +23,37 @@ export class NavigationPage extends BasePage {
   // ── Nav detection ────────────────────────────────────────────────────────────
 
   /**
-   * Return the primary navigation locator.
-   * Tries role="navigation" first, then <nav>, then header-scoped links.
+   * Return all `<nav>` / `[role="navigation"]` elements on the page.
+   * Sites commonly render a separate desktop nav and an off-canvas mobile
+   * nav — both match this locator, but only one is visible at a time.
    */
-  private getNavLocator(): Locator {
-    return this.page.locator('nav, [role="navigation"]').first();
+  private getAllNavLocators(): Locator {
+    return this.page.locator('nav, [role="navigation"]');
   }
 
-  /** Return true if a navigation element is visible on the page. */
+  /**
+   * Return the primary navigation locator: whichever `<nav>` /
+   * `[role="navigation"]` element is currently visible, falling back to the
+   * first one in DOM order if none are visible yet (e.g. before a mobile
+   * menu toggle has been opened).
+   */
+  private async getNavLocator(): Promise<Locator> {
+    const navs = this.getAllNavLocators();
+    const count = await navs.count();
+    for (let i = 0; i < count; i++) {
+      if (await navs.nth(i).isVisible()) return navs.nth(i);
+    }
+    return navs.first();
+  }
+
+  /** Return true if any navigation element is visible on the page. */
   async isNavVisible(): Promise<boolean> {
-    const nav = this.getNavLocator();
-    if (await nav.count() === 0) return false;
-    return nav.isVisible();
+    const navs = this.getAllNavLocators();
+    const count = await navs.count();
+    for (let i = 0; i < count; i++) {
+      if (await navs.nth(i).isVisible()) return true;
+    }
+    return false;
   }
 
   // ── Nav links ────────────────────────────────────────────────────────────────
@@ -44,7 +63,7 @@ export class NavigationPage extends BasePage {
    * Filters out empty hrefs and anchor-only links (#).
    */
   async getNavLinks(): Promise<NavLinkInfo[]> {
-    const nav = this.getNavLocator();
+    const nav = await this.getNavLocator();
     if (await nav.count() === 0) return [];
 
     const links = nav.locator('a[href]');
@@ -70,7 +89,7 @@ export class NavigationPage extends BasePage {
    * Uses a case-insensitive partial match.
    */
   async clickNavItem(text: string): Promise<void> {
-    const nav = this.getNavLocator();
+    const nav = await this.getNavLocator();
     const link = nav.getByRole('link', { name: text });
     await link.first().click();
     await this.page.waitForLoadState('domcontentloaded');
@@ -86,7 +105,11 @@ export class NavigationPage extends BasePage {
   async getMobileMenuToggle(): Promise<Locator | null> {
     const candidates = [
       this.page.getByRole('button', { name: /menu|navigation|toggle|hamburger/i }),
-      this.page.locator('[class*="hamburger"], [class*="menu-toggle"], [class*="nav-toggle"]'),
+      this.page.locator(
+        '[class*="hamburger"], [class*="menu-toggle"], [class*="nav-toggle"], ' +
+        '[class*="menu_toggle"], [class*="nav_toggle"], [class*="menu_button"], ' +
+        '[class*="side_menu"]'
+      ),
       this.page.locator('[aria-label*="menu" i], [aria-label*="navigation" i]').filter({ hasNotText: /^\s*$/ }),
       this.page.locator('button[aria-expanded]').first(),
     ];
@@ -113,8 +136,17 @@ export class NavigationPage extends BasePage {
 
     await toggle.click();
 
-    // Wait briefly for animation
-    await this.page.waitForTimeout(400);
+    // Wait for any nav element to become visible (off-canvas menus animate in),
+    // bounded so a site with no visible-nav follow-through doesn't hang the test.
+    await this.page
+      .waitForFunction(
+        () =>
+          Array.from(document.querySelectorAll('nav, [role="navigation"]')).some(
+            (el) => (el as HTMLElement).offsetParent !== null
+          ),
+        { timeout: 2_000 }
+      )
+      .catch(() => {});
   }
 
   // ── Link reachability ────────────────────────────────────────────────────────

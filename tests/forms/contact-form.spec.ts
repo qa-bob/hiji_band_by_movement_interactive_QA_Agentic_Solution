@@ -8,6 +8,42 @@
  */
 
 import { test, expect } from '@fixtures/site.fixture';
+import type { ContactFormPage } from '@pages/contact.page';
+import type { SiteConfig } from '@type-defs/site-config.types';
+import type { Page, Locator } from '@playwright/test';
+
+const CONTACT_PATHS = ['/contact', '/contact-us', '/get-in-touch', '/reach-out'];
+
+/**
+ * Find the real contact form, checking the homepage first (in case it's
+ * embedded there) and then every known contact-page path in turn. Shared by
+ * every test below so a form living on a non-default path (e.g.
+ * /contact-us/ instead of /contact/) doesn't cause a false "not found".
+ */
+async function locateContactForm(
+  contactPage: ContactFormPage,
+  siteConfig: SiteConfig,
+  page: Page
+): Promise<Locator | null> {
+  await contactPage.navigate();
+  let form = await contactPage.findContactForm();
+  if (form) return form;
+
+  for (const contactPath of CONTACT_PATHS) {
+    try {
+      await page.goto(siteConfig.url.replace(/\/$/, '') + contactPath, {
+        waitUntil: 'domcontentloaded',
+        timeout: 10_000,
+      });
+      form = await contactPage.findContactForm();
+      if (form) return form;
+    } catch {
+      // Path doesn't exist — try next
+    }
+  }
+
+  return null;
+}
 
 test.describe('Contact Form @forms', () => {
   // Skip the entire suite when skipForms is configured for this site
@@ -20,26 +56,7 @@ test.describe('Contact Form @forms', () => {
   // ── Form presence ───────────────────────────────────────────────────────────
 
   test('contact form is present on site @forms', async ({ contactPage, siteConfig, page }) => {
-    // Check homepage first
-    await contactPage.navigate();
-    let form = await contactPage.findContactForm();
-
-    if (!form) {
-      // Try /contact, /contact-us, /get-in-touch
-      const contactPaths = ['/contact', '/contact-us', '/get-in-touch', '/reach-out'];
-      for (const contactPath of contactPaths) {
-        try {
-          await page.goto(siteConfig.url.replace(/\/$/, '') + contactPath, {
-            waitUntil: 'domcontentloaded',
-            timeout: 10_000,
-          });
-          form = await contactPage.findContactForm();
-          if (form) break;
-        } catch {
-          // Path doesn't exist — try next
-        }
-      }
-    }
+    let form = await locateContactForm(contactPage, siteConfig, page);
 
     if (!form) {
       // Also check if there's a "Contact" link in nav to follow
@@ -61,17 +78,7 @@ test.describe('Contact Form @forms', () => {
   // ── Required fields ─────────────────────────────────────────────────────────
 
   test('contact form has required fields (name, email) @forms', async ({ contactPage, siteConfig, page }) => {
-    // Navigate to find the form
-    await contactPage.navigate();
-    let form = await contactPage.findContactForm();
-
-    if (!form) {
-      await page.goto(siteConfig.url.replace(/\/$/, '') + '/contact', {
-        waitUntil: 'domcontentloaded',
-        timeout: 10_000,
-      }).catch(() => null);
-      form = await contactPage.findContactForm();
-    }
+    const form = await locateContactForm(contactPage, siteConfig, page);
 
     if (!form) {
       test.skip(true, 'No contact form found — covered by "contact form is present" test');
@@ -94,16 +101,7 @@ test.describe('Contact Form @forms', () => {
   // ── Submit button ───────────────────────────────────────────────────────────
 
   test('contact form has a submit button @forms', async ({ contactPage, siteConfig, page }) => {
-    await contactPage.navigate();
-    let form = await contactPage.findContactForm();
-
-    if (!form) {
-      await page.goto(siteConfig.url.replace(/\/$/, '') + '/contact', {
-        waitUntil: 'domcontentloaded',
-        timeout: 10_000,
-      }).catch(() => null);
-      form = await contactPage.findContactForm();
-    }
+    const form = await locateContactForm(contactPage, siteConfig, page);
 
     if (!form) {
       test.skip(true, 'No contact form found');
@@ -117,16 +115,7 @@ test.describe('Contact Form @forms', () => {
   // ── Labels and placeholders ─────────────────────────────────────────────────
 
   test('form fields have proper labels or placeholders @forms', async ({ contactPage, siteConfig, page }) => {
-    await contactPage.navigate();
-    let form = await contactPage.findContactForm();
-
-    if (!form) {
-      await page.goto(siteConfig.url.replace(/\/$/, '') + '/contact', {
-        waitUntil: 'domcontentloaded',
-        timeout: 10_000,
-      }).catch(() => null);
-      form = await contactPage.findContactForm();
-    }
+    const form = await locateContactForm(contactPage, siteConfig, page);
 
     if (!form) {
       test.skip(true, 'No contact form found');
@@ -179,16 +168,7 @@ test.describe('Contact Form @forms', () => {
     siteConfig,
     page,
   }) => {
-    await contactPage.navigate();
-    let form = await contactPage.findContactForm();
-
-    if (!form) {
-      await page.goto(siteConfig.url.replace(/\/$/, '') + '/contact', {
-        waitUntil: 'domcontentloaded',
-        timeout: 10_000,
-      }).catch(() => null);
-      form = await contactPage.findContactForm();
-    }
+    const form = await locateContactForm(contactPage, siteConfig, page);
 
     if (!form) {
       test.skip(true, 'No contact form found');
@@ -216,8 +196,8 @@ test.describe('Contact Form @forms', () => {
 
     await submitBtn.click({ force: true });
 
-    // Wait briefly to allow validation messages to appear
-    await page.waitForTimeout(500);
+    // Let any AJAX validation round-trip settle (best-effort, bounded).
+    await page.waitForLoadState('networkidle', { timeout: 2_000 }).catch(() => {});
 
     // Check that we're still on the same page (form was NOT submitted)
     expect(

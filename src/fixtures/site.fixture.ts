@@ -10,10 +10,12 @@
  */
 
 import { test as base, expect } from '@playwright/test';
-import { loadSiteConfig, type SiteConfig } from '@types/site-config.types';
+import { loadSiteConfig, type SiteConfig } from '@type-defs/site-config.types';
 import { HomePage } from '@pages/home.page';
 import { NavigationPage } from '@pages/navigation.page';
 import { ContactFormPage } from '@pages/contact.page';
+import { HowItWorksPage } from '@pages/how-it-works.page';
+import { ShopPage } from '@pages/shop.page';
 
 // ── Fixture type definitions ─────────────────────────────────────────────────
 
@@ -26,6 +28,10 @@ export interface Fixtures {
   navigationPage: NavigationPage;
   /** ContactFormPage page object (does not auto-navigate) */
   contactPage: ContactFormPage;
+  /** HowItWorksPage page object (does not auto-navigate) */
+  howItWorksPage: HowItWorksPage;
+  /** ShopPage page object (does not auto-navigate) */
+  shopPage: ShopPage;
 }
 
 // ── Extended test object ─────────────────────────────────────────────────────
@@ -66,6 +72,24 @@ export const test = base.extend<Fixtures>({
   contactPage: async ({ page, siteConfig }, use) => {
     const contactPage = new ContactFormPage(page, siteConfig);
     await use(contactPage);
+  },
+
+  /**
+   * howItWorksPage — constructs HowItWorksPage without navigating.
+   * Call .navigate() to go to /how-it-works/.
+   */
+  howItWorksPage: async ({ page, siteConfig }, use) => {
+    const howItWorksPage = new HowItWorksPage(page, siteConfig);
+    await use(howItWorksPage);
+  },
+
+  /**
+   * shopPage — constructs ShopPage without navigating.
+   * Call .navigate() to go to /shop/.
+   */
+  shopPage: async ({ page, siteConfig }, use) => {
+    const shopPage = new ShopPage(page, siteConfig);
+    await use(shopPage);
   },
 });
 

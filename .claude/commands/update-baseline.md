@@ -45,7 +45,11 @@ To view diffs (if you have ImageMagick):
 
 ## Notes
 
-- Baselines are stored in `__snapshots__/` which is listed in `.gitignore` by default.
-  If you want baselines committed (recommended for teams), remove `__snapshots__/` from `.gitignore`.
-- Visual tests will SKIP (not fail) when no baseline exists yet — run this command first.
-- Cookie banners and animated elements are automatically handled before capture.
+- Baselines are stored in `__snapshots__/`, which is **committed** to version control
+  (not gitignored) so a fresh clone or CI run has something to compare against.
+- Visual tests **fail** (not skip) the first time they run with no baseline — Playwright
+  writes the actual screenshot as the new baseline and reports the test as failed on
+  that same run. Run `/update-baseline` (or `npm run baseline`) once to establish
+  baselines, review the PNGs, then subsequent runs compare against them normally.
+- Cookie banners are automatically dismissed before capture (see `dismissCookieBanner`
+  in `src/utils/visual-helper.ts`); animations are frozen via `animations: 'disabled'`.

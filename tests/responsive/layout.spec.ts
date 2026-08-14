@@ -15,7 +15,9 @@ test.describe('Responsive Layout @responsive', () => {
   test('no horizontal scrollbar at mobile viewport @responsive', async ({ page, siteConfig }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(siteConfig.url, { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle');
+    // Best-effort settle — many sites (analytics beacons, chat widgets, cart
+    // polling) never reach true network idle, so don't fail the test on it.
+    await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => {});
 
     const hasHorizontalScroll = await page.evaluate<boolean>(() => {
       return document.documentElement.scrollWidth > document.documentElement.clientWidth;
@@ -31,7 +33,9 @@ test.describe('Responsive Layout @responsive', () => {
   test('no horizontal scrollbar at tablet viewport @responsive', async ({ page, siteConfig }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.goto(siteConfig.url, { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle');
+    // Best-effort settle — many sites (analytics beacons, chat widgets, cart
+    // polling) never reach true network idle, so don't fail the test on it.
+    await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => {});
 
     const hasHorizontalScroll = await page.evaluate<boolean>(() => {
       return document.documentElement.scrollWidth > document.documentElement.clientWidth;

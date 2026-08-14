@@ -18,31 +18,51 @@ export interface FormFieldInfo {
 export class ContactFormPage extends BasePage {
   // ── Form discovery ───────────────────────────────────────────────────────────
 
+  /** Class-name substrings that indicate a newsletter/email-capture widget rather than a contact form. */
+  private static readonly NEWSLETTER_CLASS_PATTERN =
+    /es_subscription_form|mc4wp-form|hustle|newsletter|mailchimp/i;
+
   /**
    * Find the primary contact form on the current page.
    * Returns null if no form is found.
    *
-   * Strategy (in priority order):
+   * Strategy (in priority order), skipping any form that looks like a
+   * newsletter/email-capture widget (pages commonly embed one everywhere,
+   * including on a dedicated /contact page — matching it instead of the
+   * real contact form would silently test the wrong thing):
    *  1. <form> with action containing "contact"
    *  2. <form> containing an email input
    *  3. First <form> on the page
    */
   async findContactForm(): Promise<Locator | null> {
+    const isNewsletterWidget = async (form: Locator): Promise<boolean> => {
+      const className = (await form.getAttribute('class')) ?? '';
+      return ContactFormPage.NEWSLETTER_CLASS_PATTERN.test(className);
+    };
+
+    const firstNonNewsletter = async (candidates: Locator): Promise<Locator | null> => {
+      const count = await candidates.count();
+      for (let i = 0; i < count; i++) {
+        const candidate = candidates.nth(i);
+        if (!(await isNewsletterWidget(candidate))) return candidate;
+      }
+      return null;
+    };
+
     // Strategy 1: form whose action URL hints "contact"
     const byAction = this.page.locator('form[action*="contact" i], form[action*="message" i]');
-    if (await byAction.count() > 0) return byAction.first();
+    const byActionMatch = await firstNonNewsletter(byAction);
+    if (byActionMatch) return byActionMatch;
 
     // Strategy 2: form containing an email field
     const withEmail = this.page.locator('form').filter({
       has: this.page.locator('input[type="email"], input[name*="email" i]'),
     });
-    if (await withEmail.count() > 0) return withEmail.first();
+    const withEmailMatch = await firstNonNewsletter(withEmail);
+    if (withEmailMatch) return withEmailMatch;
 
     // Strategy 3: any form at all
-    const anyForm = this.page.locator('form').first();
-    if (await anyForm.count() > 0) return anyForm;
-
-    return null;
+    return firstNonNewsletter(this.page.locator('form'));
   }
 
   // ── Field inspection ─────────────────────────────────────────────────────────

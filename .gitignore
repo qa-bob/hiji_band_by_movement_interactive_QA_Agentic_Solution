@@ -2,5 +2,8 @@ node_modules/
 dist/
 playwright-report/
 test-results/
-__snapshots__/
 .env
+
+# __snapshots__/ baselines are committed intentionally so @visual tests have
+# something to compare against on a fresh clone or in CI. Review new/changed
+# PNGs before committing — see .github/CONTRIBUTING.md.

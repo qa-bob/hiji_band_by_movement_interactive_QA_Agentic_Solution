@@ -113,4 +113,51 @@ export class HomePage extends BasePage {
       return false;
     }
   }
+
+  // ── Newsletter signup ───────────────────────────────────────────────────────
+
+  /**
+   * Return the primary newsletter/email signup form, or null if none is
+   * present. Looks for common email-marketing plugin form classes first
+   * (Email Subscribers, Mailchimp, Hustle), then falls back to any form
+   * containing only name/email fields and no message/textarea (which would
+   * indicate a contact form instead).
+   */
+  async findNewsletterForm(): Promise<Locator | null> {
+    const byPluginClass = this.page.locator(
+      'form[class*="es_subscription_form"], form[class*="mc4wp-form"], ' +
+      'form[class*="newsletter"], form[class*="hustle"]'
+    );
+    if (await byPluginClass.count() > 0) return byPluginClass.first();
+
+    const byHeuristic = this.page.locator('form').filter({
+      has: this.page.locator('input[type="email"]'),
+      hasNot: this.page.locator('textarea'),
+    });
+    if (await byHeuristic.count() > 0) return byHeuristic.first();
+
+    return null;
+  }
+
+  /** Returns true if a newsletter signup form is present anywhere on the page. */
+  async hasNewsletterForm(): Promise<boolean> {
+    return (await this.findNewsletterForm()) !== null;
+  }
+
+  /** Returns true if the newsletter form has an email input field. */
+  async newsletterHasEmailField(): Promise<boolean> {
+    const form = await this.findNewsletterForm();
+    if (!form) return false;
+    return (await form.locator('input[type="email"]').count()) > 0;
+  }
+
+  /** Returns true if the newsletter form has a submit/subscribe button. */
+  async newsletterHasSubmitControl(): Promise<boolean> {
+    const form = await this.findNewsletterForm();
+    if (!form) return false;
+    const submit = form.locator(
+      'button[type="submit"], input[type="submit"], button:not([type="button"]):not([type="reset"])'
+    );
+    return (await submit.count()) > 0;
+  }
 }

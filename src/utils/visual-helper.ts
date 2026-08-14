@@ -116,7 +116,7 @@ export async function dismissCookieBanner(page: Page): Promise<void> {
       const btn = page.locator(selector).first();
       if (await btn.isVisible({ timeout: 1_000 })) {
         await btn.click();
-        await page.waitForTimeout(300);
+        await btn.waitFor({ state: 'hidden', timeout: 2_000 }).catch(() => {});
         return;
       }
     } catch {

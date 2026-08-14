@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(npm test*)",
+      "Bash(npm run *)",
+      "Bash(npx playwright *)",
+      "Bash(npx tsc *)",
+      "Bash(npx eslint *)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(npm test*)",
+            "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-test.sh",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "if": "Bash(npm run test*)",
+            "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-test.sh",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "if": "Bash(npx playwright test*)",
+            "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-test.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

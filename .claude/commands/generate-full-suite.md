@@ -51,16 +51,17 @@ Each page class must:
 
 Example structure:
 ```typescript
-import { Page, Locator } from '@playwright/test';
-import { BasePage } from './base.page';
+import { type Page, type Locator } from '@playwright/test';
+import { BasePage } from '@pages/base.page';
+import type { SiteConfig } from '@type-defs/site-config.types';
 
 export class ServicesPage extends BasePage {
   readonly heroHeading: Locator;
   readonly serviceCards: Locator;
   readonly ctaButton: Locator;
 
-  constructor(page: Page) {
-    super(page);
+  constructor(page: Page, config: SiteConfig) {
+    super(page, config); // BasePage requires both page and config
     this.heroHeading = page.locator('h1');
     this.serviceCards = page.locator('[class*="service-card"], [class*="service-item"]');
     this.ctaButton = page.locator('a[href*="contact"], button:has-text("Get Started")').first();
@@ -72,6 +73,14 @@ export class ServicesPage extends BasePage {
   }
 }
 ```
+
+Real sites frequently use non-obvious class names for interactive elements
+(e.g. a mobile menu toggle named `mobile_menu_button` instead of
+`menu-toggle`, or a WooCommerce theme rendering product titles in `<h6
+itemprop="name">` instead of the standard `.woocommerce-loop-product__title`).
+Fetch the live page's raw HTML (not just the WebFetch markdown summary) when
+a generic selector doesn't match, and prefer broad `[class*="..."]` /
+multi-tag fallback locators over a single assumed selector.
 
 ---
 

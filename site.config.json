@@ -1,23 +1,28 @@
-﻿{
-    "name":  "Hiji Band by Movement Interactive",
-    "url":  "https://www.hijiband.com",
-    "description":  "",
-    "industry":  "",
-    "hasContactForm":  true,
-    "expectedNavItems":  [
-
-                         ],
-    "viewports":  [
-                      "desktop",
-                      "mobile",
-                      "tablet"
-                  ],
-    "skipVisual":  false,
-    "skipForms":  false,
-    "auth":  {
-                 "required":  false,
-                 "loginUrl":  "",
-                 "username":  "",
-                 "password":  ""
-             }
+{
+    "name": "Hiji Band by Movement Interactive",
+    "url": "https://www.hijiband.com",
+    "description": "Hiji Band is a wearable head-impact-detection headband and mobile app that gives parents and coaches real-time alerts on possible concussion-causing impacts.",
+    "industry": "Sports safety / wearable health tech",
+    "hasContactForm": true,
+    "expectedNavItems": [
+        "How It Works",
+        "About Us",
+        "News",
+        "Resource",
+        "Contact Us",
+        "SHOP NOW"
+    ],
+    "viewports": [
+        "desktop",
+        "mobile",
+        "tablet"
+    ],
+    "skipVisual": false,
+    "skipForms": false,
+    "auth": {
+        "required": false,
+        "loginUrl": "",
+        "username": "",
+        "password": ""
+    }
 }

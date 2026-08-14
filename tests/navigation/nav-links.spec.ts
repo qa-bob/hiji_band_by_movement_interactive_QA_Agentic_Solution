@@ -17,9 +17,18 @@ test.describe('Navigation @navigation', () => {
 
   // ── Visibility ──────────────────────────────────────────────────────────────
 
-  test('navigation menu is visible @navigation', async ({ navigationPage }) => {
+  test('navigation menu is visible or reachable via a menu toggle @navigation', async ({ navigationPage }) => {
     const isVisible = await navigationPage.isNavVisible();
-    expect(isVisible, 'A nav / [role="navigation"] element should be visible').toBeTruthy();
+
+    if (isVisible) return;
+
+    // Many responsive sites hide the nav behind an off-canvas/hamburger
+    // toggle at small viewports — that's still accessible navigation.
+    const toggle = await navigationPage.getMobileMenuToggle();
+    expect(
+      toggle,
+      'A nav / [role="navigation"] element should be visible, or a mobile menu toggle should exist'
+    ).not.toBeNull();
   });
 
   // ── Link reachability ───────────────────────────────────────────────────────
