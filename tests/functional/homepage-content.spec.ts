@@ -34,10 +34,7 @@ test.describe('Homepage Content @functional', () => {
     const shopNowLinks = page.locator('a').filter({ hasText: /shop now/i });
     const count = await shopNowLinks.count();
 
-    if (count === 0) {
-      console.warn('[functional] No "SHOP NOW" CTA found on homepage — skipping.');
-      return;
-    }
+    test.skip(count === 0, 'No "SHOP NOW" CTA found on homepage');
 
     let visibleLink = null;
     for (let i = 0; i < count; i++) {
@@ -47,12 +44,9 @@ test.describe('Homepage Content @functional', () => {
       }
     }
 
-    if (!visibleLink) {
-      console.warn('[functional] "SHOP NOW" CTA exists but is not visible (likely behind a closed mobile menu) — skipping.');
-      return;
-    }
+    test.skip(!visibleLink, '"SHOP NOW" CTA exists but is not visible (likely behind a closed mobile menu)');
 
-    await visibleLink.click();
+    await visibleLink!.click();
     await page.waitForLoadState('domcontentloaded');
 
     expect(page.url(), 'Clicking "SHOP NOW" should navigate to a shop URL').toContain('/shop');
