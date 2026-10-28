@@ -28,10 +28,7 @@ test.describe('Shop Page @functional', () => {
   test('featured products have non-empty names @functional', async ({ shopPage }) => {
     const productCount = await shopPage.getFeaturedProductCount();
 
-    if (productCount === 0) {
-      console.warn('[functional] No featured products found on shop page — skipping name check.');
-      return;
-    }
+    test.skip(productCount === 0, 'No featured products found on shop page');
 
     const names = await shopPage.getFeaturedProductNames();
     expect(names.length, 'Every featured product should expose a readable name').toBeGreaterThan(0);
@@ -40,10 +37,7 @@ test.describe('Shop Page @functional', () => {
   test('clicking a product category navigates to its category page @functional', async ({ shopPage, page }) => {
     const categoryCount = await shopPage.getProductCategoryCount();
 
-    if (categoryCount === 0) {
-      console.warn('[functional] No product category cards found — skipping navigation check.');
-      return;
-    }
+    test.skip(categoryCount === 0, 'No product category cards found');
 
     const firstCategoryLink = shopPage.productCategoryCards.first().locator('a[href]').first();
     const href = await firstCategoryLink.getAttribute('href');

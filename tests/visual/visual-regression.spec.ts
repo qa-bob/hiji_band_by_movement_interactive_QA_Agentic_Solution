@@ -4,9 +4,13 @@
  * Visual regression tests — compare screenshots against stored baselines.
  * Run `npm run baseline` to capture new baselines after intentional design changes.
  *
+ * Each test runs only in the Playwright project whose viewport it targets, and
+ * is skipped (not failed) until a baseline has been captured for it.
+ *
  * Tag: @visual
  */
 
+import * as fs from 'fs';
 import { test, expect } from '@fixtures/site.fixture';
 import { dismissCookieBanner } from '@utils/visual-helper';
 
@@ -18,6 +22,12 @@ const SCREENSHOT_OPTIONS = {
   fullPage: true,
 } as const;
 
+const VISUAL_CASES = [
+  { label: 'desktop', project: 'chromium-desktop', snapshot: 'homepage-desktop.png' },
+  { label: 'mobile', project: 'mobile-chrome', snapshot: 'homepage-mobile.png' },
+  { label: 'tablet', project: 'tablet', snapshot: 'homepage-tablet.png' },
+] as const;
+
 test.describe('Visual Regression @visual', () => {
   // Skip entire suite when site config opts out
   test.beforeEach(async ({ siteConfig }) => {
@@ -26,53 +36,27 @@ test.describe('Visual Regression @visual', () => {
     }
   });
 
-  // ── Desktop ─────────────────────────────────────────────────────────────────
+  for (const { label, project, snapshot } of VISUAL_CASES) {
+    test(`homepage visual regression - ${label} @visual`, async ({ page, siteConfig }, testInfo) => {
+      test.skip(testInfo.project.name !== project, `Runs only in the "${project}" project`);
 
-  test('homepage visual regression - desktop @visual', async ({ page, siteConfig }) => {
-    await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto(siteConfig.url, { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => {});
+      // Only `--update-snapshots` (all/changed) should create a missing baseline
+      const isUpdating = ['all', 'changed'].includes(testInfo.config.updateSnapshots);
+      const baselinePath = testInfo.snapshotPath(snapshot, { kind: 'screenshot' });
+      test.skip(
+        !isUpdating && !fs.existsSync(baselinePath),
+        `No baseline at ${baselinePath} — run "npm run baseline" to capture one`
+      );
 
-    // Dismiss any cookie/consent banners that would interfere with comparison
-    await dismissCookieBanner(page);
+      await page.goto(siteConfig.url, { waitUntil: 'load' });
 
-    // Wait for web fonts to finish loading so screenshots aren't taken mid-FOUT.
-    await page.evaluate(() => document.fonts.ready).catch(() => {});
+      // Dismiss any cookie/consent banners that would interfere with comparison
+      await dismissCookieBanner(page);
 
-    await expect(page).toHaveScreenshot('homepage-desktop.png', {
-      ...SCREENSHOT_OPTIONS,
+      // Wait for web fonts to finish loading so screenshots aren't taken mid-FOUT.
+      await page.evaluate(() => document.fonts.ready).catch(() => {});
+
+      await expect(page).toHaveScreenshot(snapshot, { ...SCREENSHOT_OPTIONS });
     });
-  });
-
-  // ── Mobile ──────────────────────────────────────────────────────────────────
-
-  test('homepage visual regression - mobile @visual', async ({ page, siteConfig }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(siteConfig.url, { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => {});
-
-    await dismissCookieBanner(page);
-    // Wait for web fonts to finish loading so screenshots aren't taken mid-FOUT.
-    await page.evaluate(() => document.fonts.ready).catch(() => {});
-
-    await expect(page).toHaveScreenshot('homepage-mobile.png', {
-      ...SCREENSHOT_OPTIONS,
-    });
-  });
-
-  // ── Tablet ──────────────────────────────────────────────────────────────────
-
-  test('homepage visual regression - tablet @visual', async ({ page, siteConfig }) => {
-    await page.setViewportSize({ width: 768, height: 1024 });
-    await page.goto(siteConfig.url, { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => {});
-
-    await dismissCookieBanner(page);
-    // Wait for web fonts to finish loading so screenshots aren't taken mid-FOUT.
-    await page.evaluate(() => document.fonts.ready).catch(() => {});
-
-    await expect(page).toHaveScreenshot('homepage-tablet.png', {
-      ...SCREENSHOT_OPTIONS,
-    });
-  });
+  }
 });

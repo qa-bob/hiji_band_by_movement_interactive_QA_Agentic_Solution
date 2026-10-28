@@ -30,19 +30,13 @@ test.describe('How It Works Page @functional', () => {
 
     const specs = await howItWorksPage.getProductSpecItems();
 
-    if (specs.length === 0) {
-      console.warn('[functional] No Product Specs list items found — section may have changed structure.');
-      return;
-    }
+    test.skip(specs.length === 0, 'No Product Specs list items found');
 
     expect(specs.length, 'Product Specs section should list multiple specifications').toBeGreaterThan(1);
   });
 
   test('"SHOP NOW" CTA is present and links to the shop @functional', async ({ howItWorksPage }) => {
-    if ((await howItWorksPage.shopNowCta.count()) === 0) {
-      console.warn('[functional] No "SHOP NOW" CTA found on How It Works page — skipping.');
-      return;
-    }
+    test.skip((await howItWorksPage.shopNowCta.count()) === 0, 'No "SHOP NOW" CTA found on How It Works page');
 
     const href = await howItWorksPage.shopNowCta.getAttribute('href');
     expect(href, '"SHOP NOW" CTA should have an href').not.toBeNull();
